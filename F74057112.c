@@ -25,6 +25,7 @@
  }Cache_4WaySetAssociative;
  typedef struct Cache_FullyAssociative
  {
+	bool valid;
  	int tag;
  	int data;
  }Cache_FullyAssociative;
@@ -39,8 +40,21 @@
  {
 	if(argc<5) printf("Not enough argument");
 	char *input,*output;
-	input=argv[2];
-	output=argv[4];
+	if(argv[1]=="-input")
+	{
+		input=argv[2];
+		output=argv[4];
+	}		
+	else if(argv[1]=="-output")
+	{
+		input=argv[4];
+		output=argv[2];
+	}
+	else
+	{
+		printf("unknown argument %s",argv[1]);
+		return 0;
+	}
  	FILE *file_in,*file_out;
  	file_in=fopen(input,"r");
 	if(file_in==NULL)
@@ -61,14 +75,13 @@
 	fscanf(file_in,"%d",&replace_algo);
 	
 	int num_of_blocks=cache_size*1024/block_size;
-	int offset=(int)(log(block_size)/log(2));
 	
 	Node *hit_first=NULL,*hit_last=NULL;
 	Node *miss_first=NULL,*miss_last=NULL;
 	if(associativity==DIRECT_MAPPED)
 	{
 		int cache_index_length=(int)(log(num_of_blocks)/log(2));
-		int tag_length=32-offset-cache_index_length;
+		//int tag_length=32-offset-cache_index_length;
 		Cache_DirectMapped cache[num_of_blocks];
 		int index=0;
 		for(index=0;index<num_of_blocks;index++)
@@ -82,8 +95,10 @@
 		while(fscanf(file_in,"%x",&addr)==1)
 		{
 			++i;
-			index = addr>>(32-cache_index_length);
-			int tag=(addr<<cache_index_length)>>(cache_index_length+offset);
+			//index = addr>>(32-cache_index_length);
+			index=(addr/block_size)%num_of_blocks;
+			//int tag=(addr<<cache_index_length)>>(cache_index_length+offset);
+			int tag=addr/block_size/num_of_blocks;
 			if(cache[index].valid&&cache[index].tag==tag)
 			{
 				//record hit instruction
@@ -141,14 +156,13 @@
 				cache[i].out_list[j]=j;
 			}
 		} 
-		int cache_index_length = (int) (log(num_of_sets)/log(2));
 		unsigned int addr;
 		i=0;
 		while(fscanf(file_in,"%x",&addr)==1)
 		{
 			++i;
-			int index = addr>>(32-cache_index_length);
-			int tag=(addr<<cache_index_length)>>(cache_index_length+offset);
+			int index=(addr/block_size)%num_of_sets;
+			int tag=addr/block_size/num_of_sets;
 			int j;
 			bool found=false;
 			for(j=0;j<4;j++)
@@ -216,11 +230,10 @@
 	{
 		Cache_FullyAssociative cache[num_of_blocks];
 		int out_list[num_of_blocks];
-		int tag_length = 32-offset;
 		int index=0;
 		for(index=0;index<num_of_blocks;index++)
 		{
-			//cache[index].valid=false;
+			cache[index].valid=false;
 			cache[index].tag=0;
 			cache[index].data=0; 
 			out_list[index]=index;
@@ -230,10 +243,10 @@
 		while(fscanf(file_in,"%x",&addr)==1)
 		{
 			++i;
-			int tag=addr>>offset;
+			int tag=addr/block_size;
 			bool found=false;
 			for(index=0;index<num_of_blocks;index++)
-				if(cache[index].tag==tag)
+				if(cache[index].valid&&cache[index].tag==tag)
 				{
 					found=true;
 					//record hit instruction
@@ -289,6 +302,7 @@
 				for(j=0;j<num_of_blocks-1;j++)
 					out_list[j]=out_list[j+1];
 				out_list[num_of_blocks-1]=index;
+				cache[index].valid=true;
 				cache[index].tag=tag;
 			}
 		}
