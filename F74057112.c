@@ -16,6 +16,7 @@
  	int tag;
  	int data;
  }Cache_DirectMapped;
+
  typedef struct Cache_4WaySetAssociative
  {
  	bool valid[4];
@@ -23,6 +24,7 @@
  	int data[4];
  	int out_list[4];
  }Cache_4WaySetAssociative;
+
  typedef struct Cache_FullyAssociative
  {
 	bool valid;
@@ -40,21 +42,8 @@
  {
 	if(argc<5) printf("Not enough argument");
 	char *input,*output;
-	if(argv[1]=="-input")
-	{
 		input=argv[2];
 		output=argv[4];
-	}		
-	else if(argv[1]=="-output")
-	{
-		input=argv[4];
-		output=argv[2];
-	}
-	else
-	{
-		printf("unknown argument %s",argv[1]);
-		return 0;
-	}
  	FILE *file_in,*file_out;
  	file_in=fopen(input,"r");
 	if(file_in==NULL)
@@ -80,8 +69,6 @@
 	Node *miss_first=NULL,*miss_last=NULL;
 	if(associativity==DIRECT_MAPPED)
 	{
-		int cache_index_length=(int)(log(num_of_blocks)/log(2));
-		//int tag_length=32-offset-cache_index_length;
 		Cache_DirectMapped cache[num_of_blocks];
 		int index=0;
 		for(index=0;index<num_of_blocks;index++)
@@ -95,9 +82,7 @@
 		while(fscanf(file_in,"%x",&addr)==1)
 		{
 			++i;
-			//index = addr>>(32-cache_index_length);
 			index=(addr/block_size)%num_of_blocks;
-			//int tag=(addr<<cache_index_length)>>(cache_index_length+offset);
 			int tag=addr/block_size/num_of_blocks;
 			if(cache[index].valid&&cache[index].tag==tag)
 			{
